@@ -23,14 +23,13 @@ dotnet build -c Release -p:GameDataDir="/path/to/game/data_sts2_platform"
 
 Replace the path with the game's data directory containing `sts2.dll`, `GodotSharp.dll`, and `0Harmony.dll`. These assemblies are supplied by the game, not this repository.
 
-The default paths target a Windows Steam installation accessed through WSL:
+`Directory.Build.props` picks default paths for the OS running the build, so for a standard Steam installation `dotnet build -c Release` works without a path override:
 
-```text
-/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2
-+-- data_sts2_windows_x86_64
-```
-
-For that layout, `dotnet build -c Release` works without a path override.
+| Build OS | Default game location |
+| --- | --- |
+| macOS | `~/Library/Application Support/Steam/steamapps/common/Slay the Spire 2` (arm64 or x86_64 data matching the Mac) |
+| Windows | `C:/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2` |
+| Linux | `/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2` (Windows install through WSL) |
 
 Build output is packaged in `dist/SimpleDrag/`.
 
@@ -46,13 +45,17 @@ Slay the Spire 2/
         +-- SimpleDrag.json
 ```
 
-Alternatively, build and install directly:
+On macOS the `mods/` directory is inside the app bundle, at `SlayTheSpire2.app/Contents/MacOS/mods/`.
+
+Alternatively, build and install directly to the default location for your OS:
 
 ```sh
-dotnet build -c Release -t:InstallMod \
-  -p:GameDir="/path/to/Slay the Spire 2" \
-  -p:GameDataDir="/path/to/game/data_sts2_platform"
+dotnet build -c Release -t:InstallMod
 ```
+
+`./install.sh` runs the same command.
+
+For a non-default installation, pass `-p:GameDir="/path/to/Slay the Spire 2"`, and `-p:GameDataDir=...` or `-p:GameModsDir=...` if those are not in the usual places.
 
 Restart the game after installing or updating. To uninstall, remove the `mods/SimpleDrag/` directory.
 

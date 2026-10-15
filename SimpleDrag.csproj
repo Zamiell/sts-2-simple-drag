@@ -6,8 +6,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>SimpleDrag</AssemblyName>
     <Version>1.0.1</Version>
-    <GameDir Condition="'$(GameDir)' == ''">/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2</GameDir>
-    <GameDataDir Condition="'$(GameDataDir)' == ''">$(GameDir)/data_sts2_windows_x86_64</GameDataDir>
     <ModOutputDir>$(MSBuildProjectDirectory)/dist/SimpleDrag</ModOutputDir>
   </PropertyGroup>
   <ItemGroup>
@@ -26,11 +24,11 @@
           DestinationFolder="$(ModOutputDir)" />
   </Target>
   <Target Name="InstallMod" DependsOnTargets="Build">
-    <Error Condition="!Exists('$(GameDir)')" Text="GameDir does not exist." />
-    <MakeDir Directories="$(GameDir)/mods/SimpleDrag" />
+    <Error Condition="!Exists('$(GameModsDir)/..')" Text="Game directory not found. Pass -p:GameDir=/path/to/game or -p:GameModsDir=/path/to/mods." />
+    <MakeDir Directories="$(GameModsDir)/SimpleDrag" />
     <Copy SourceFiles="$(ModOutputDir)/SimpleDrag.dll"
-          DestinationFolder="$(GameDir)/mods/SimpleDrag" />
+          DestinationFolder="$(GameModsDir)/SimpleDrag" />
     <Copy SourceFiles="$(ModOutputDir)/SimpleDrag.json"
-          DestinationFolder="$(GameDir)/mods/SimpleDrag" />
+          DestinationFolder="$(GameModsDir)/SimpleDrag" />
   </Target>
 </Project>
