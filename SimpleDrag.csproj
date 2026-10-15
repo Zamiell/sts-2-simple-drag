@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>SimpleDrag</AssemblyName>
+    <Version>1.0.1</Version>
+    <GameDir Condition="'$(GameDir)' == ''">/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2</GameDir>
+    <GameDataDir Condition="'$(GameDataDir)' == ''">$(GameDir)/data_sts2_windows_x86_64</GameDataDir>
+    <ModOutputDir>$(MSBuildProjectDirectory)/dist/SimpleDrag</ModOutputDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="sts2" HintPath="$(GameDataDir)/sts2.dll" Private="false" />
+    <Reference Include="GodotSharp" HintPath="$(GameDataDir)/GodotSharp.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(GameDataDir)/0Harmony.dll" Private="false" />
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+  <Target Name="CheckGamePath" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GameDataDir)/sts2.dll')"
+           Text="Game assembly not found. Pass -p:GameDataDir=/path/to/data_sts2_platform." />
+  </Target>
+  <Target Name="PackageMod" AfterTargets="Build">
+    <MakeDir Directories="$(ModOutputDir)" />
+    <Copy SourceFiles="$(TargetPath);$(MSBuildProjectDirectory)/SimpleDrag.json"
+          DestinationFolder="$(ModOutputDir)" />
+  </Target>
+  <Target Name="InstallMod" DependsOnTargets="Build">
+    <Error Condition="!Exists('$(GameDir)')" Text="GameDir does not exist." />
+    <MakeDir Directories="$(GameDir)/mods/SimpleDrag" />
+    <Copy SourceFiles="$(ModOutputDir)/SimpleDrag.dll"
+          DestinationFolder="$(GameDir)/mods/SimpleDrag" />
+    <Copy SourceFiles="$(ModOutputDir)/SimpleDrag.json"
+          DestinationFolder="$(GameDir)/mods/SimpleDrag" />
+  </Target>
+</Project>
