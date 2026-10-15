@@ -1,1 +1,76 @@
-# sts-2-simple-drag
+# Simple Drag
+
+A Slay the Spire 2 mod that removes unnecessary aiming when only one living enemy remains.
+
+Drag a single-target attack out of your hand and release it in the play zone above your hand to attack the remaining enemy. The card follows your mouse instead of switching to a targeting arrow, while still showing the target's highlight and damage preview.
+
+## Behavior
+
+- Only applies to mouse-dragged, single-target **Attack** cards when exactly one living enemy remains and it is a valid target.
+- Leaves normal targeting unchanged for multiple living enemies, skills, other target types, click targeting, keyboard shortcuts, and controllers.
+- Preserves the game's normal card-play and cancellation behavior. Releasing outside the play zone cancels the play.
+- Rechecks the target on release. If it is no longer valid or another living enemy has appeared, the play is cancelled.
+
+## Build
+
+Requires a local Slay the Spire 2 installation and the [.NET SDK](https://dotnet.microsoft.com/download) with support for `net9.0`. The mod manifest declares a minimum game version of `0.111.0`; later updates may change the private APIs used by the mod.
+
+From the repository root:
+
+```sh
+dotnet build -c Release -p:GameDataDir="/path/to/game/data_sts2_platform"
+```
+
+Replace the path with the game's data directory containing `sts2.dll`, `GodotSharp.dll`, and `0Harmony.dll`. These assemblies are supplied by the game, not this repository.
+
+The default paths target a Windows Steam installation accessed through WSL:
+
+```text
+/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2
++-- data_sts2_windows_x86_64
+```
+
+For that layout, `dotnet build -c Release` works without a path override.
+
+Build output is packaged in `dist/SimpleDrag/`.
+
+## Install
+
+After building, copy `SimpleDrag.dll` and `SimpleDrag.json` from `dist/SimpleDrag/` into the game's `mods/SimpleDrag/` directory:
+
+```text
+Slay the Spire 2/
++-- mods/
+    +-- SimpleDrag/
+        +-- SimpleDrag.dll
+        +-- SimpleDrag.json
+```
+
+Alternatively, build and install directly:
+
+```sh
+dotnet build -c Release -t:InstallMod \
+  -p:GameDir="/path/to/Slay the Spire 2" \
+  -p:GameDataDir="/path/to/game/data_sts2_platform"
+```
+
+Restart the game after installing or updating. To uninstall, remove the `mods/SimpleDrag/` directory.
+
+## Development checks
+
+The behavior checks use game stubs to exercise targeting, release-time validation, cancellation, and preview cleanup. They require .NET 10 and the game's `0Harmony.dll`:
+
+```sh
+dotnet run --project tests/Behavior \
+  -p:GameDataDir="/path/to/game/data_sts2_platform"
+```
+
+After building the mod, check that its private API bindings and Harmony patches work against your installed game:
+
+```sh
+dotnet run --project tests/Compatibility -- \
+  "/path/to/game/data_sts2_platform" \
+  "dist/SimpleDrag/SimpleDrag.dll"
+```
+
+The compatibility check targets .NET 9. These checks do not replace in-game testing of the drag interaction.
