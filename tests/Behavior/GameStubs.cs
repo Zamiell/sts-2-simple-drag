@@ -5,6 +5,15 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using SimpleDrag;
 
+namespace SimpleDrag
+{
+    internal static class DragDiagnostics
+    {
+        internal static List<string> Events { get; } = [];
+        internal static void Record(NCardPlay play, string message) => Events.Add(message);
+    }
+}
+
 namespace MegaCrit.Sts2.Core.Entities.Cards
 {
     public enum CardType { Attack, Skill }
