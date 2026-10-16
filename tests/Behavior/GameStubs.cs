@@ -16,7 +16,7 @@ namespace SimpleDrag
 
 namespace MegaCrit.Sts2.Core.Entities.Cards
 {
-    public enum CardType { Attack, Skill }
+    public enum CardType { Attack, Skill, Power }
     public enum TargetType { AnyEnemy, AnyAlly, AllEnemies }
     public enum CardPreviewMode { Normal, MultiCreatureTargeting }
     public enum PileType { Hand }

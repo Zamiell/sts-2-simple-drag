@@ -137,7 +137,7 @@ internal static class SingleEnemyDragPatch
     {
         var card = play.Holder.CardModel;
         reason = card == null ? "missing-card"
-            : card.Type != CardType.Attack ? $"card-type-{card.Type}"
+            : card.Type is not (CardType.Attack or CardType.Skill) ? $"card-type-{card.Type}"
             : card.TargetType != TargetType.AnyEnemy ? $"card-target-type-{card.TargetType}"
             : card.CombatState == null ? "missing-combat"
             : "eligible";

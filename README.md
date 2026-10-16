@@ -2,12 +2,12 @@
 
 A Slay the Spire 2 mod that removes unnecessary aiming when only one living enemy remains.
 
-Drag a single-target attack out of your hand and release it in the play zone above your hand to attack the remaining enemy. The card follows your mouse instead of switching to a targeting arrow, while still showing the target's highlight and damage preview.
+Drag a single-target attack or skill out of your hand and release it in the play zone above your hand to play it on the remaining enemy. The card follows your mouse instead of switching to a targeting arrow, while still showing the target's highlight and preview.
 
 ## Behavior
 
-- Only applies to mouse-dragged, single-target **Attack** cards when exactly one living enemy remains and it is a valid target.
-- Leaves normal targeting unchanged for multiple living enemies, skills, other target types, click targeting, keyboard shortcuts, and controllers.
+- Only applies to mouse-dragged, single-target **Attack** and **Skill** cards when exactly one living enemy remains and it is a valid target.
+- Leaves normal targeting unchanged for multiple living enemies, other card types, other target types, click targeting, keyboard shortcuts, and controllers.
 - A fast flick that releases above the play-zone line still counts as a drag, even if the game would otherwise have switched to click targeting. Clicking a card and releasing in the hand keeps the normal click targeting.
 - Preserves the game's normal card-play and cancellation behavior. Releasing outside the play zone cancels the play.
 - Rechecks the target on release. If it is no longer valid or another living enemy has appeared, the play is cancelled.

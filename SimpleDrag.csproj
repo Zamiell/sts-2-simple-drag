@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>SimpleDrag</AssemblyName>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <ModOutputDir>$(MSBuildProjectDirectory)/dist/SimpleDrag</ModOutputDir>
   </PropertyGroup>
   <ItemGroup>
