@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Threading;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -12,6 +13,9 @@ namespace SimpleDrag;
 internal static class SingleEnemyDragPatch
 {
     private static readonly HashSet<NCardPlay> ActiveDrags = new(ReferenceEqualityComparer.Instance);
+
+    // Plays whose latest left-button release happened above the play-zone line.
+    private static readonly ConditionalWeakTable<NMouseCardPlay, object> ReleasedInPlayZone = new();
 
     private static readonly AccessTools.FieldRef<NMouseCardPlay, Creature?> SelectedTarget =
         AccessTools.FieldRefAccess<NMouseCardPlay, Creature?>("_target");
@@ -37,6 +41,15 @@ internal static class SingleEnemyDragPatch
         TargetType targetType,
         ref Task __result)
     {
+        // The game picks click targeting when the button is already up once the card reaches the play zone.
+        // A fast flick can release above the line before that frame's check, so treat it as a drag release.
+        var requestedMode = targetMode;
+        if (targetMode == TargetMode.ClickMouseToTarget && !StartedWithShortcut(__instance) &&
+            ReleasedInPlayZone.TryGetValue(__instance, out _))
+        {
+            targetMode = TargetMode.ReleaseMouseToTarget;
+        }
+
         var reason = targetMode != TargetMode.ReleaseMouseToTarget ? $"mode-{targetMode}"
             : targetType != TargetType.AnyEnemy ? $"selection-type-{targetType}"
             : StartedWithShortcut(__instance) ? "keyboard-shortcut"
@@ -47,7 +60,7 @@ internal static class SingleEnemyDragPatch
             GetOnlyTarget(__instance, out reason);
         }
         DragDiagnostics.Record(__instance,
-            $"route mode={targetMode} decision={(reason == "eligible" ? "simple-drag" : "vanilla")} reason={reason}");
+            $"route mode={requestedMode} effectiveMode={targetMode} decision={(reason == "eligible" ? "simple-drag" : "vanilla")} reason={reason}");
         if (reason != "eligible")
         {
             return true;
@@ -55,6 +68,18 @@ internal static class SingleEnemyDragPatch
 
         __result = DragWithoutArrow(__instance, targetMode);
         return false;
+    }
+
+    internal static void RecordLeftRelease(NMouseCardPlay play)
+    {
+        if (IsCardInPlayZone(play))
+        {
+            ReleasedInPlayZone.AddOrUpdate(play, play);
+        }
+        else
+        {
+            ReleasedInPlayZone.Remove(play);
+        }
     }
 
     private static async Task DragWithoutArrow(NMouseCardPlay play, TargetMode targetMode)

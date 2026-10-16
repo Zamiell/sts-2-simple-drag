@@ -8,6 +8,7 @@ Drag a single-target attack out of your hand and release it in the play zone abo
 
 - Only applies to mouse-dragged, single-target **Attack** cards when exactly one living enemy remains and it is a valid target.
 - Leaves normal targeting unchanged for multiple living enemies, skills, other target types, click targeting, keyboard shortcuts, and controllers.
+- A fast flick that releases above the play-zone line still counts as a drag, even if the game would otherwise have switched to click targeting. Clicking a card and releasing in the hand keeps the normal click targeting.
 - Preserves the game's normal card-play and cancellation behavior. Releasing outside the play zone cancels the play.
 - Rechecks the target on release. If it is no longer valid or another living enemy has appeared, the play is cancelled.
 

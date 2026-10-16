@@ -24,6 +24,23 @@ var routingTests = new (string Name, Action<Fixture> Arrange, bool Simplified)[]
     ("area attack unchanged", f => f.Card.TargetType = TargetType.AllEnemies, false),
     ("ally-target selection unchanged", f => f.TargetType = TargetType.AnyAlly, false),
     ("click targeting unchanged", f => f.Mode = TargetMode.ClickMouseToTarget, false),
+    ("released in hand keeps click targeting", f => f.ReleaseBeforeRouting(mouseY: 800), false),
+    ("fast flick released in play zone", f => f.ReleaseBeforeRouting(mouseY: 700), true),
+    ("released in play zone, then back in hand", f =>
+    {
+        f.ReleaseBeforeRouting(mouseY: 700);
+        f.ReleaseBeforeRouting(mouseY: 800);
+    }, false),
+    ("flick with two enemies unchanged", f =>
+    {
+        f.AddEnemy();
+        f.ReleaseBeforeRouting(mouseY: 700);
+    }, false),
+    ("shortcut click unchanged after release in play zone", f =>
+    {
+        f.Play.StartedWithShortcut = true;
+        f.ReleaseBeforeRouting(mouseY: 700);
+    }, false),
     ("controller targeting unchanged", f => f.Mode = TargetMode.Controller, false),
     ("inactive targeting unchanged", f => f.Mode = TargetMode.None, false),
     ("shortcut unchanged", f => f.Play.StartedWithShortcut = true, false),
@@ -164,6 +181,15 @@ sealed class Fixture
         var enemy = new Creature { IsAlive = alive, IsHittable = hittable };
         Card.CombatState!.Enemies.Add(enemy);
         Room.Nodes.Add(enemy, new NCreature(enemy));
+    }
+
+    // The button came up before the game chose a target mode, so it chose click targeting.
+    public void ReleaseBeforeRouting(float mouseY)
+    {
+        Mode = TargetMode.ClickMouseToTarget;
+        Play.MouseY = mouseY;
+        SingleEnemyDragPatch.RecordLeftRelease(Play);
+        Play.MouseY = 700;
     }
 
     public Task Begin() => Play.BeginSelection(Mode, TargetType);
