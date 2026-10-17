@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using HarmonyLib;
-using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 
 namespace SimpleDrag;
@@ -10,9 +9,8 @@ public static class ModEntry
 {
     public static void Initialize()
     {
+        // Resolve the private game members up front so a game update fails at load, not mid-drag.
         RuntimeHelpers.RunClassConstructor(typeof(SingleEnemyDragPatch).TypeHandle);
-        RuntimeHelpers.RunClassConstructor(typeof(DragDiagnostics).TypeHandle);
         new Harmony("james.sts2.simple-drag").PatchAll(typeof(ModEntry).Assembly);
-        Log.Info($"[SimpleDrag] v{typeof(ModEntry).Assembly.GetName().Version} diagnostics enabled; gameAssembly={typeof(MegaCrit.Sts2.Core.Nodes.Combat.NMouseCardPlay).Assembly.ManifestModule.ModuleVersionId}. Lifecycle/input events only; no per-frame logging.");
     }
 }

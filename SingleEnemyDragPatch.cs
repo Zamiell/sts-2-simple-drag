@@ -41,27 +41,19 @@ internal static class SingleEnemyDragPatch
         TargetType targetType,
         ref Task __result)
     {
+        if (StartedWithShortcut(__instance) || targetType != TargetType.AnyEnemy ||
+            Cancellation(__instance).IsCancellationRequested)
+        {
+            return true;
+        }
+
         // The game picks click targeting when the button is already up once the card reaches the play zone.
         // A fast flick can release above the line before that frame's check, so treat it as a drag release.
-        var requestedMode = targetMode;
-        if (targetMode == TargetMode.ClickMouseToTarget && !StartedWithShortcut(__instance) &&
-            ReleasedInPlayZone.TryGetValue(__instance, out _))
+        if (targetMode == TargetMode.ClickMouseToTarget && ReleasedInPlayZone.TryGetValue(__instance, out _))
         {
             targetMode = TargetMode.ReleaseMouseToTarget;
         }
-
-        var reason = targetMode != TargetMode.ReleaseMouseToTarget ? $"mode-{targetMode}"
-            : targetType != TargetType.AnyEnemy ? $"selection-type-{targetType}"
-            : StartedWithShortcut(__instance) ? "keyboard-shortcut"
-            : Cancellation(__instance).IsCancellationRequested ? "already-cancelled"
-            : null;
-        if (reason == null)
-        {
-            GetOnlyTarget(__instance, out reason);
-        }
-        DragDiagnostics.Record(__instance,
-            $"route mode={requestedMode} effectiveMode={targetMode} decision={(reason == "eligible" ? "simple-drag" : "vanilla")} reason={reason}");
-        if (reason != "eligible")
+        if (targetMode != TargetMode.ReleaseMouseToTarget || GetOnlyTarget(__instance) == null)
         {
             return true;
         }
@@ -92,14 +84,10 @@ internal static class SingleEnemyDragPatch
             await MultiCreatureTargeting(play, targetMode);
             if (Cancellation(play).IsCancellationRequested)
             {
-                DragDiagnostics.Record(play, "drag-ended cancellation-requested");
                 return;
             }
 
-            var target = GetOnlyTarget(play, out var reason);
-            var inPlayZone = IsCardInPlayZone(play);
-            DragDiagnostics.Record(play, $"release-validation inPlayZone={inPlayZone} target={reason}");
-            if (!inPlayZone || target == null)
+            if (!IsCardInPlayZone(play) || GetOnlyTarget(play) is not { } target)
             {
                 play.CancelPlayCard();
                 return;
@@ -107,12 +95,6 @@ internal static class SingleEnemyDragPatch
 
             // StartAsync resumes the normal TryPlayCard path after this task completes.
             SelectedTarget(play) = target.Entity;
-            DragDiagnostics.Record(play, "target-selected; returning to game play validation");
-        }
-        catch (Exception exception)
-        {
-            DragDiagnostics.Record(play, $"drag-exception {exception}");
-            throw;
         }
         finally
         {
@@ -123,7 +105,7 @@ internal static class SingleEnemyDragPatch
     internal static void ShowPreview(NCardPlay play)
     {
         if (!ActiveDrags.Contains(play) || play.Holder.CardNode is not { } cardNode ||
-            GetOnlyTarget(play, out _) is not { } target)
+            GetOnlyTarget(play) is not { } target)
         {
             return;
         }
@@ -133,15 +115,11 @@ internal static class SingleEnemyDragPatch
         target.ShowMultiselectReticle();
     }
 
-    private static NCreature? GetOnlyTarget(NCardPlay play, out string reason)
+    private static NCreature? GetOnlyTarget(NCardPlay play)
     {
         var card = play.Holder.CardModel;
-        reason = card == null ? "missing-card"
-            : card.Type is not (CardType.Attack or CardType.Skill) ? $"card-type-{card.Type}"
-            : card.TargetType != TargetType.AnyEnemy ? $"card-target-type-{card.TargetType}"
-            : card.CombatState == null ? "missing-combat"
-            : "eligible";
-        if (card?.CombatState == null || reason != "eligible")
+        if (card?.CombatState == null || card.Type is not (CardType.Attack or CardType.Skill) ||
+            card.TargetType != TargetType.AnyEnemy)
         {
             return null;
         }
@@ -155,29 +133,17 @@ internal static class SingleEnemyDragPatch
             }
             if (target != null)
             {
-                reason = "multiple-living-enemies";
                 return null;
             }
             target = enemy;
         }
 
-        reason = target == null ? "no-living-enemies"
-            : !target.IsHittable ? "enemy-not-hittable"
-            : !card.IsValidTarget(target) ? "invalid-card-target"
-            : "eligible";
-        if (target == null || reason != "eligible")
+        if (target == null || !target.IsHittable || !card.IsValidTarget(target) ||
+            !Hook.ShouldAllowTargeting(card.CombatState, target, out _))
         {
             return null;
         }
-        if (!Hook.ShouldAllowTargeting(card.CombatState, target, out var preventer))
-        {
-            reason = $"targeting-blocked-by-{preventer?.GetType().Name ?? "unknown"}";
-            return null;
-        }
-
-        var node = NCombatRoom.Instance?.GetCreatureNode(target);
-        reason = node == null ? "missing-enemy-node" : "eligible";
-        return node;
+        return NCombatRoom.Instance?.GetCreatureNode(target);
     }
 }
 

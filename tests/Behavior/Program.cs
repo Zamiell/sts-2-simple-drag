@@ -50,17 +50,9 @@ var routingTests = new (string Name, Action<Fixture> Arrange, bool Simplified)[]
 
 foreach (var (name, arrange, simplified) in routingTests)
 {
-    DragDiagnostics.Events.Clear();
     var f = new Fixture();
     arrange(f);
     var task = f.Begin();
-    Assert(DragDiagnostics.Events.Single().Contains($"decision={(simplified ? "simple-drag" : "vanilla")}"),
-        $"{name}: diagnostic route decision");
-    if (name == "click targeting unchanged")
-    {
-        Assert(DragDiagnostics.Events.Single().Contains("reason=mode-ClickMouseToTarget"),
-            "early-release click mode must be identifiable");
-    }
     Assert(f.Play.OriginalCalls == (simplified ? 0 : 1), $"{name}: arrow/centering path");
     Assert(f.Play.UntargetedCalls == (simplified ? 1 : 0), $"{name}: untargeted drag path");
     if (simplified)
@@ -97,14 +89,11 @@ var releaseTests = new (string Name, Action<Fixture> DuringDrag, bool Plays)[]
 
 foreach (var (name, duringDrag, plays) in releaseTests)
 {
-    DragDiagnostics.Events.Clear();
     var f = new Fixture();
     var task = f.Begin();
     duringDrag(f);
     f.Play.MouseReleased.SetResult();
     await task;
-    Assert(DragDiagnostics.Events.Any(line => line.StartsWith("release-validation") ||
-        line == "drag-ended cancellation-requested"), $"{name}: diagnostic outcome");
     Assert(f.Play.Target == (plays ? f.Enemy : null), $"{name}: release-time revalidation");
     Assert(f.Play.Cancellation.IsCancellationRequested == !plays, $"{name}: cancellation");
     Assert(f.Play.OriginalCalls == 0, $"{name}: no targeting arrow during simplified drag");
@@ -113,12 +102,6 @@ foreach (var (name, duringDrag, plays) in releaseTests)
 
 var moving = new Fixture();
 var movingTask = moving.Begin();
-var logCount = DragDiagnostics.Events.Count;
-for (var i = 0; i < 100; i++)
-{
-    moving.Play.RefreshVisuals();
-}
-Assert(DragDiagnostics.Events.Count == logCount, "preview refreshes must not produce log spam");
 moving.Play.MouseY = 800;
 moving.Play.RefreshVisuals();
 Assert(moving.Play.Holder.CardNode.PreviewTarget == null, "preview clears below play zone");
