@@ -52,7 +52,10 @@ foreach (var (name, arrange, simplified) in routingTests)
 {
     var f = new Fixture();
     arrange(f);
+    DragLog.Lines.Clear();
     var task = f.Begin();
+    Assert(DragLog.Lines.Single().Contains($"decision={(simplified ? "simple-drag" : "vanilla")}"),
+        $"{name}: logged route decision");
     Assert(f.Play.OriginalCalls == (simplified ? 0 : 1), $"{name}: arrow/centering path");
     Assert(f.Play.UntargetedCalls == (simplified ? 1 : 0), $"{name}: untargeted drag path");
     if (simplified)
@@ -102,6 +105,12 @@ foreach (var (name, duringDrag, plays) in releaseTests)
 
 var moving = new Fixture();
 var movingTask = moving.Begin();
+var logCount = DragLog.Lines.Count;
+for (var i = 0; i < 100; i++)
+{
+    moving.Play.RefreshVisuals();
+}
+Assert(DragLog.Lines.Count == logCount, "preview refreshes must not produce log spam");
 moving.Play.MouseY = 800;
 moving.Play.RefreshVisuals();
 Assert(moving.Play.Holder.CardNode.PreviewTarget == null, "preview clears below play zone");

@@ -41,19 +41,43 @@ internal static class SingleEnemyDragPatch
         TargetType targetType,
         ref Task __result)
     {
-        if (StartedWithShortcut(__instance) || targetType != TargetType.AnyEnemy ||
-            Cancellation(__instance).IsCancellationRequested)
+        var card = __instance.Holder.CardModel;
+        var releasedInPlayZone = ReleasedInPlayZone.TryGetValue(__instance, out _);
+        string reason;
+        if (StartedWithShortcut(__instance))
         {
-            return true;
+            reason = "keyboard-shortcut";
+        }
+        else if (targetType != TargetType.AnyEnemy)
+        {
+            reason = $"selection-type-{targetType}";
+        }
+        else if (Cancellation(__instance).IsCancellationRequested)
+        {
+            reason = "already-cancelled";
+        }
+        else
+        {
+            // The game picks click targeting when the button is already up once the card reaches the play zone.
+            // A fast flick can release above the line before that frame's check, so treat it as a drag release.
+            if (targetMode == TargetMode.ClickMouseToTarget && releasedInPlayZone)
+            {
+                targetMode = TargetMode.ReleaseMouseToTarget;
+            }
+            if (targetMode != TargetMode.ReleaseMouseToTarget)
+            {
+                reason = $"mode-{targetMode}";
+            }
+            else
+            {
+                GetOnlyTarget(__instance, out reason);
+            }
         }
 
-        // The game picks click targeting when the button is already up once the card reaches the play zone.
-        // A fast flick can release above the line before that frame's check, so treat it as a drag release.
-        if (targetMode == TargetMode.ClickMouseToTarget && ReleasedInPlayZone.TryGetValue(__instance, out _))
-        {
-            targetMode = TargetMode.ReleaseMouseToTarget;
-        }
-        if (targetMode != TargetMode.ReleaseMouseToTarget || GetOnlyTarget(__instance) == null)
+        var simplified = reason == Eligible;
+        DragLog.Info($"route card={card?.Id} mode={targetMode} releasedInPlayZone={releasedInPlayZone} " +
+            $"decision={(simplified ? "simple-drag" : "vanilla")} reason={reason}");
+        if (!simplified)
         {
             return true;
         }
@@ -64,7 +88,9 @@ internal static class SingleEnemyDragPatch
 
     internal static void RecordLeftRelease(NMouseCardPlay play)
     {
-        if (IsCardInPlayZone(play))
+        var inPlayZone = IsCardInPlayZone(play);
+        DragLog.Info($"left-release card={play.Holder.CardModel?.Id} inPlayZone={inPlayZone}");
+        if (inPlayZone)
         {
             ReleasedInPlayZone.AddOrUpdate(play, play);
         }
@@ -84,10 +110,14 @@ internal static class SingleEnemyDragPatch
             await MultiCreatureTargeting(play, targetMode);
             if (Cancellation(play).IsCancellationRequested)
             {
+                DragLog.Info("drag-ended cancelled");
                 return;
             }
 
-            if (!IsCardInPlayZone(play) || GetOnlyTarget(play) is not { } target)
+            var inPlayZone = IsCardInPlayZone(play);
+            var target = GetOnlyTarget(play, out var reason);
+            DragLog.Info($"drag-ended inPlayZone={inPlayZone} target={reason}");
+            if (!inPlayZone || target == null)
             {
                 play.CancelPlayCard();
                 return;
@@ -105,7 +135,7 @@ internal static class SingleEnemyDragPatch
     internal static void ShowPreview(NCardPlay play)
     {
         if (!ActiveDrags.Contains(play) || play.Holder.CardNode is not { } cardNode ||
-            GetOnlyTarget(play) is not { } target)
+            GetOnlyTarget(play, out _) is not { } target)
         {
             return;
         }
@@ -115,35 +145,46 @@ internal static class SingleEnemyDragPatch
         target.ShowMultiselectReticle();
     }
 
-    private static NCreature? GetOnlyTarget(NCardPlay play)
+    private const string Eligible = "eligible";
+
+    private static NCreature? GetOnlyTarget(NCardPlay play, out string reason)
     {
         var card = play.Holder.CardModel;
-        if (card?.CombatState == null || card.Type is not (CardType.Attack or CardType.Skill) ||
-            card.TargetType != TargetType.AnyEnemy)
+        if (card?.CombatState == null)
         {
+            reason = card == null ? "no-card" : "no-combat";
+            return null;
+        }
+        if (card.Type is not (CardType.Attack or CardType.Skill) || card.TargetType != TargetType.AnyEnemy)
+        {
+            reason = $"card-{card.Type}-{card.TargetType}";
             return null;
         }
 
         Creature? target = null;
+        var living = 0;
         foreach (var enemy in card.CombatState.Enemies)
         {
-            if (!enemy.IsAlive)
+            if (enemy.IsAlive)
             {
-                continue;
+                living++;
+                target = enemy;
             }
-            if (target != null)
-            {
-                return null;
-            }
-            target = enemy;
         }
 
-        if (target == null || !target.IsHittable || !card.IsValidTarget(target) ||
-            !Hook.ShouldAllowTargeting(card.CombatState, target, out _))
+        if (living != 1)
         {
+            reason = $"living-enemies-{living}";
             return null;
         }
-        return NCombatRoom.Instance?.GetCreatureNode(target);
+
+        var node = NCombatRoom.Instance?.GetCreatureNode(target!);
+        reason = !target!.IsHittable ? "enemy-unhittable"
+            : !card.IsValidTarget(target) ? "invalid-target"
+            : !Hook.ShouldAllowTargeting(card.CombatState, target, out _) ? "targeting-hook-blocked"
+            : node == null ? "no-creature-node"
+            : Eligible;
+        return reason == Eligible ? node : null;
     }
 }
 

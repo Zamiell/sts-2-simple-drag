@@ -3,7 +3,7 @@
   "name": "Simple Drag",
   "author": "James",
   "description": "Drag single-target attacks and skills like untargeted cards, without a targeting arrow, when only one living enemy remains. Release above your hand to play.",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "min_game_version": "0.111.0",
   "has_pck": false,
   "has_dll": true,

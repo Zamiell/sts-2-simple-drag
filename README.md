@@ -12,6 +12,10 @@ Drag a single-target attack or skill out of your hand and release it in the play
 - Preserves the game's normal card-play and cancellation behavior. Releasing outside the play zone cancels the play.
 - Rechecks the target on release. If it is no longer valid or another living enemy has appeared, the play is cancelled.
 
+## Logging
+
+Each drag writes a few `[SimpleDrag]` lines to the game log (`godot.log`): the left-button release, whether the mod took over the drag (`decision=simple-drag` or `decision=vanilla` with a `reason`), and the result on release. On macOS the log is in `~/Library/Application Support/SlayTheSpire2/logs/`.
+
 ## Build
 
 Requires a local Slay the Spire 2 installation and the [.NET SDK](https://dotnet.microsoft.com/download) with support for `net9.0`. The mod manifest declares a minimum game version of `0.111.0`; later updates may change the private APIs used by the mod.

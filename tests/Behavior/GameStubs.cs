@@ -5,6 +5,15 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using SimpleDrag;
 
+namespace SimpleDrag
+{
+    internal static class DragLog
+    {
+        internal static List<string> Lines { get; } = [];
+        internal static void Info(string message) => Lines.Add(message);
+    }
+}
+
 namespace MegaCrit.Sts2.Core.Entities.Cards
 {
     public enum CardType { Attack, Skill, Power }
@@ -48,6 +57,7 @@ namespace MegaCrit.Sts2.Core.Nodes.Combat
     }
     public class Card
     {
+        public string Id { get; } = "STRIKE_TEST";
         public CardType Type { get; set; } = CardType.Attack;
         public TargetType TargetType { get; set; } = TargetType.AnyEnemy;
         public CombatState? CombatState { get; set; } = new();
